@@ -1,9 +1,16 @@
+"""
+Used to update the courses, their announcements and classwork materials when the program is first used by a user or when using this with an account for the first time or in case of 
+file deletion from the system
+"""
 import os
 import drive_download
 
-
+"""
+The below function updates the list of courses to which the google account of the user is linked to. The courses joined after the previous update are added to the 'course_list.txt'
+file along with their name and course_id. The directories for these courses are also created.
+"""
 def update_course_list(classroom_service):
-    course_info = classroom_service.courses().list(fields='courses(id,name)').execute()
+    course_info = classroom_service.courses().list(fields='courses(id,name)').execute() #the fields parameter is used for fetching only the required fields from the server thus reducing load and improving performance
     available_courses = []
     no_of_avail_courses = len(course_info['courses'])
     for i in range(no_of_avail_courses):
@@ -26,7 +33,10 @@ def update_course_list(classroom_service):
             course_list.truncate()
     return new_courses
 
-
+"""
+This function is used for updating the courseWorkMaterial for the newly joined courses after the previous update. All the course_work material are downloaded to their respective 
+directories
+"""
 def update_courseWorkMaterial(classroom_service, drive_service, new_courses):
     with open("./courseWorkMaterial_token.txt", "a") as courseWorkMaterial_token_file:
         for course in new_courses:
@@ -41,6 +51,10 @@ def update_courseWorkMaterial(classroom_service, drive_service, new_courses):
                                                                                                   orderBy='updateTime asc',
                                                                                                   fields="nextPageToken",
                                                                                                   pageSize=no_of_courseWorkMaterial - 1).execute()
+                """
+                All of the above things are done for getting the nextPageToken which is used for accessing the next batch of results from the server. There is no way of getting
+                the total number of courseWorkMaterials from the server provided by the API otherwise it could have been done in a much more easier way
+                """
                 courseWorkMaterial_token_file.write(courseWorkMaterial_token['nextPageToken'] + "\n")
                 for course_work_material in course_work_material_info['courseWorkMaterial']:
                     for material in course_work_material['materials']:
@@ -49,7 +63,9 @@ def update_courseWorkMaterial(classroom_service, drive_service, new_courses):
                         drive_download.drive_dl(drive_service, file_id,
                                                 "/home/pratham/Classroom/" + course_name + "/update/courseWorkMaterials/" + file_title)
 
-
+"""
+Similar to the above function but used for downloading announcements rather than courseWorkMaterials
+"""
 def update_course_announcements(classroom_service, drive_service, new_courses):
     with open("./announcement_tokens.txt", "a") as announcement_token_file:
         for course in new_courses:
